@@ -1,6 +1,8 @@
 from rest_framework import permissions
 
-
+__all__ = (
+    'IsOwnerOrReadOnly',
+)
 class IsOwnerOrReadOnly(permissions.BasePermission):
     """
     객체의 소유자에게만 쓰기를 허용하는 커스텀 권한
