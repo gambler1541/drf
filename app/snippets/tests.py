@@ -1,14 +1,15 @@
 import json
 import random
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework import status
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APIClient
 
 from snippets.models import Snippet
 from snippets.serializers import SnippetSerializer
 
-
+User = get_user_model()
 class SnippetListTest(APITestCase):
     """
     Snippet List요청에 대한 테스트
@@ -28,8 +29,10 @@ class SnippetListTest(APITestCase):
         Snippet List를 요청시 DB에 잇는 자료수와 같은 갯수가 리턴되는지 테스트
         :return:
         """
+        User.objects.create(username='pmb')
+        user = User.objects.first()
         for i in range(1, 10):
-            Snippet.objects.create(code=f'a = {i}')
+            Snippet.objects.create(code=f'a = {i}', owner = user)
         response = self.client.get(self.URL)
         data = json.loads(response.content)
         self.assertEqual(len(data), Snippet.objects.count())
@@ -42,8 +45,10 @@ class SnippetListTest(APITestCase):
         Snippets List의 결과가 생성일자 내림차순인지 확인
         :return:
         """
+        User.objects.create(username='pmb')
+        user = User.objects.first()
         for i in range(random.randint(5, 10)):
-            Snippet.objects.create(code=f'a = {i}')
+            Snippet.objects.create(code=f'a = {i}', owner=user)
         response = self.client.get(self.URL)
         data = json.loads(response.content)
 
@@ -52,7 +57,7 @@ class SnippetListTest(APITestCase):
             # JSON으로 전달받은 데이터에서 pk만 꺼낸 리스트
             [item['pk'] for item in data],
             # DB에서 created역순으로 pk만 가져온 QuerySet으로 만든 리스트
-            list(Snippet.objects.order_by('-created').values_list('pk', flat=True))
+            list(Snippet.objects.order_by('created').values_list('pk', flat=True))
         )
 
 
@@ -70,10 +75,14 @@ class SnippetsCreateTest(APITestCase):
 
         # 실제 JSON형식 데이터를 전송
         # response = self.client.post('/snippets/django_view/snippets/',data = CREATE_DATA, content_type='application/json',)
+        User.objects.create(username='admin')
+        user = User.objects.get(username='admin')
+        client = self.client
+        client.force_authenticate(user=user)
         response = self.client.post(
             self.URL,
             data = {
-                'code':"print('hello, world')"
+                'code':"print('hello, world')",
             },
             format='json',)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -90,6 +99,10 @@ class SnippetsCreateTest(APITestCase):
             'style': 'monokai',
         }
 
+        User.objects.create(username='admin')
+        user = User.objects.get(username='admin')
+        client = self.client
+        client.force_authenticate(user=user)
         response = self.client.post(
             self.URL,
             data=snippet_data,
@@ -109,11 +122,15 @@ class SnippetsCreateTest(APITestCase):
         '''
         snippet_data = {
             'title': 'SnippetTitle',
-            'code': 'SnippetCode',
             'linenos': True,
             'language': 'c',
             'style': 'monokai',
         }
+
+        User.objects.create(username='admin')
+        user = User.objects.get(username='admin')
+        client = self.client
+        client.force_authenticate(user=user)
 
         response = self.client.post(
             self.URL,
