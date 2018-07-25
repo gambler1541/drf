@@ -7,9 +7,14 @@ from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 
 from snippets.models import Snippet
-from snippets.serializers import SnippetSerializer
+from snippets.serializers import SnippetBaseSerializer
 
 User = get_user_model()
+DUMMY_USER_USERNAME = 'dummy_username'
+def get_dummy_user():
+    return User.objects.create_user(username=DUMMY_USER_USERNAME)
+
+
 class SnippetListTest(APITestCase):
     """
     Snippet List요청에 대한 테스트
@@ -29,8 +34,7 @@ class SnippetListTest(APITestCase):
         Snippet List를 요청시 DB에 잇는 자료수와 같은 갯수가 리턴되는지 테스트
         :return:
         """
-        User.objects.create(username='pmb')
-        user = User.objects.first()
+        user=get_dummy_user()
         for i in range(1, 10):
             Snippet.objects.create(code=f'a = {i}', owner = user)
         response = self.client.get(self.URL)
@@ -45,8 +49,7 @@ class SnippetListTest(APITestCase):
         Snippets List의 결과가 생성일자 내림차순인지 확인
         :return:
         """
-        User.objects.create(username='pmb')
-        user = User.objects.first()
+        user = get_dummy_user()
         for i in range(random.randint(5, 10)):
             Snippet.objects.create(code=f'a = {i}', owner=user)
         response = self.client.get(self.URL)
@@ -75,10 +78,9 @@ class SnippetsCreateTest(APITestCase):
 
         # 실제 JSON형식 데이터를 전송
         # response = self.client.post('/snippets/django_view/snippets/',data = CREATE_DATA, content_type='application/json',)
-        User.objects.create(username='admin')
-        user = User.objects.get(username='admin')
-        client = self.client
-        client.force_authenticate(user=user)
+        user = get_dummy_user()
+
+        self.client.force_authenticate(user=user)
         response = self.client.post(
             self.URL,
             data = {
@@ -99,10 +101,9 @@ class SnippetsCreateTest(APITestCase):
             'style': 'monokai',
         }
 
-        User.objects.create(username='admin')
-        user = User.objects.get(username='admin')
-        client = self.client
-        client.force_authenticate(user=user)
+        user = get_dummy_user()
+
+        self.client.force_authenticate(user=user)
         response = self.client.post(
             self.URL,
             data=snippet_data,
@@ -113,6 +114,8 @@ class SnippetsCreateTest(APITestCase):
         data = json.loads(response.content)
         for key in snippet_data:
             self.assertEqual(data[key], snippet_data[key])
+
+        self.assertEqual(data['owner'], user.username)
 
 
     def test_snippet_create_missing_code_raise_exception(self):
@@ -127,10 +130,8 @@ class SnippetsCreateTest(APITestCase):
             'style': 'monokai',
         }
 
-        User.objects.create(username='admin')
-        user = User.objects.get(username='admin')
-        client = self.client
-        client.force_authenticate(user=user)
+        user = get_dummy_user()
+        self.client.force_authenticate(user=user)
 
         response = self.client.post(
             self.URL,
