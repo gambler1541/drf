@@ -6,7 +6,8 @@ User = get_user_model()
 __all__ = (
 
     'UserListSerializer',
-    'UserDetailSerializer',
+    'UserBaseSerializer'
+
 )
 
 class UserBaseSerializer(serializers.ModelSerializer):
@@ -22,6 +23,3 @@ class UserListSerializer(UserBaseSerializer):
     pass
 
 
-class UserDetailSerializer(UserBaseSerializer):
-    class Meta:
-        fields = UserBaseSerializer.Meta.fields + ('snippets',)

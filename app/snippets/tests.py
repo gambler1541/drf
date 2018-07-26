@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 
 from snippets.models import Snippet
-from snippets.serializers import SnippetBaseSerializer
+from snippets.serializers import SnippetBaseSerializer, UserListSerializer
 
 User = get_user_model()
 DUMMY_USER_USERNAME = 'dummy_username'
@@ -39,7 +39,7 @@ class SnippetListTest(APITestCase):
             Snippet.objects.create(code=f'a = {i}', owner = user)
         response = self.client.get(self.URL)
         data = json.loads(response.content)
-        self.assertEqual(len(data), Snippet.objects.count())
+        self.assertEqual(data['count'], Snippet.objects.count())
 
 
 
@@ -52,13 +52,20 @@ class SnippetListTest(APITestCase):
         user = get_dummy_user()
         for i in range(random.randint(5, 10)):
             Snippet.objects.create(code=f'a = {i}', owner=user)
-        response = self.client.get(self.URL)
-        data = json.loads(response.content)
 
-
+        pk_list=[]
+        page=1
+        while True:
+            response = self.client.get(self.URL, {'page': page})
+            data = json.loads(response.content)
+            pk_list += [item['pk'] for item in data['results']]
+            if data['next']:
+                page += 1
+            else:
+                break
         self.assertEqual(
             # JSON으로 전달받은 데이터에서 pk만 꺼낸 리스트
-            [item['pk'] for item in data],
+            pk_list,
             # DB에서 created역순으로 pk만 가져온 QuerySet으로 만든 리스트
             list(Snippet.objects.order_by('created').values_list('pk', flat=True))
         )
@@ -110,12 +117,13 @@ class SnippetsCreateTest(APITestCase):
             format='json',
         )
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        data = json.loads(response.content)
-        for key in snippet_data:
-            self.assertEqual(data[key], snippet_data[key])
 
-        self.assertEqual(data['owner'], user.username)
+        data = json.loads(response.content)
+        check_fields = ['title', 'linenos', 'language', 'style']
+        for field in check_fields:
+            self.assertEqual(data[field], snippet_data[field])
+
+        self.assertEqual(data['owner'], UserListSerializer(user).data)
 
 
     def test_snippet_create_missing_code_raise_exception(self):

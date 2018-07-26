@@ -11,7 +11,7 @@ __all__ = (
 )
 
 class SnippetBaseSerializer(serializers.ModelSerializer):
-    owner = UserListSerializer()
+    owner = UserListSerializer(required=False)
 
     class Meta:
         model = Snippet
@@ -35,3 +35,5 @@ class SnippetListSerializer(SnippetBaseSerializer):
 class SnippetDetailSerializer(SnippetBaseSerializer):
     class Meta(SnippetBaseSerializer.Meta):
         fields = SnippetBaseSerializer.Meta.fields + ('code',)
+
+
